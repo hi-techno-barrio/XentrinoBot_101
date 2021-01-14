@@ -7,12 +7,14 @@ Xentrio 2WD Version
 ![XentrinoBot ONE ](https://github.com/hi-techno-barrio/XentrinoBot-ONE/blob/main/doc_refence/img/XentrinoBot-ONE.png)
 
 
-REFERENCES:
 
-Video 
 
-Tutorials
+Videoa: 
 
-Project Wiki
+Tutorials:
+
+Simulatons:
+
+Project Wiki:
 
 
