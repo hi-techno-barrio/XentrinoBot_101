@@ -1,4 +1,4 @@
-# XentrinoBot-ONE
+# XentrinoBot-101
 
 The most affordable efficient basic ROS 2WD mobile robot
 Xentrio 2WD Version
