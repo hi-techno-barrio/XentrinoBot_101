@@ -1,4 +1,4 @@
-#include "pid.h"
+#include "PID.h"
 
 PIDController::PIDController(float P, float I, float D, float ramp, float limit)
     : P(P)
