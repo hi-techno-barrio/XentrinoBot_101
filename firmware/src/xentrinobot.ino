@@ -158,6 +158,7 @@ void publishSpeed(double time) {
   nh.loginfo("Publishing odometry");
 }
 
+//better quadrature
 //Left motor encoder counter
 void encoderLeftMotor() {
   if (digitalRead(PIN_ENCOD_A_MOTOR_LEFT) == digitalRead(PIN_ENCOD_B_MOTOR_LEFT)) pos_left++;
