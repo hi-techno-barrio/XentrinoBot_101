@@ -112,12 +112,15 @@ void loop() {
     
     // algo 2 check idle command  
    if ( (noCommLoops >= noCommLoopMax) || (speed_req_left == 0) )  {     //Stopping if too much time without command
-                          //Stopping
+      //Stopping
       leftMotor->setSpeed(0);
       leftMotor->run(BRAKE);
+      rightMotor->setSpeed(0);
+      rightMotor->run(BRAKE);
     }
     else {
-     motor.spin() // if actual pwm is positive move forward else move backward
+     motor1.spin() // if actual pwm is positive move forward else move backward
+     motor2.spin
     }
      /*if (PWM_leftMotor > 0){                          //Going forward
       leftMotor->setSpeed(abs(PWM_leftMotor));
@@ -129,27 +132,7 @@ void loop() {
     }
     */
     
-    speed_cmd_right = constrain(speed_cmd_right, -max_speed, max_speed);    
-    PID_rightMotor.Compute();                                                 
-    // compute PWM value for right motor. Check constant definition comments for more information.
-    PWM_rightMotor = constrain(((speed_req_right+sgn(speed_req_right)*min_speed_cmd)/speed_to_pwm_ratio) + (speed_cmd_right/speed_to_pwm_ratio), -255, 255); // 
-
-    if (noCommLoops >= noCommLoopMax) {                   //Stopping if too much time without command
-      rightMotor->setSpeed(0);
-      rightMotor->run(BRAKE);
-    }
-    else if (speed_req_right == 0){                       //Stopping
-      rightMotor->setSpeed(0);
-      rightMotor->run(BRAKE);
-    }
-    else if (PWM_rightMotor > 0){                         //Going forward
-      rightMotor->setSpeed(abs(PWM_rightMotor));
-      rightMotor->run(FORWARD);
-    }
-    else {                                                //Going backward
-      rightMotor->setSpeed(abs(PWM_rightMotor));
-      rightMotor->run(BACKWARD);
-    }
+    
 
     if((millis()-lastMilli) >= LOOPTIME){         //write an error if execution time of the loop in longer than the specified looptime
       Serial.println(" TOO LONG ");
