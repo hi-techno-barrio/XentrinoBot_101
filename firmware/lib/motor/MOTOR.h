@@ -1,29 +1,31 @@
-#ifndef DC_Motor_h
-#define DC_Motor_h
+/* DC motor library for Arduino
+coded by  Christopher Coballes Philippines  
+ver 1.0 - 1/1/2020
+*/
+#ifndef Motor_h
+#define Motor_h
 
 #include "Arduino.h"
 
-class DC_Motor
+class Motor
   { 
-    private:
-            int pin_1,pin_2,motor_speed,dir_flag;
+                 
     public:
-    DC_Motor(int pin1,int pin2);
-    DC_Motor(int pin1,int pin2,int speed_flag);
-    void forward(void);
-    void forward_with_set_speed(void);
-    void reverse(void);
-    void reverse_with_set_speed(void);
-    void run_motor(int dir,int speed);
-    void set_speed(int speed);  
-    void start_motor(int dir);
-    void jogg_full_speed(int dir);
-    void stop_motor(void);
-    void dc_break(void); 
-    void motor_speed_zero(void); 
-    void soft_start(int dir,int speed,int time_int_sec);
-    void smooth_stop(int time_int_sec);
-    void jogg_set_speed(int dir,int speed);
+
+    enum board  {L298N,MOTO,BTS7960 };
+			Motor(board controller, int pin1,int pin2,int pwm_pin );
+			void forward(void);
+			void reverse(void);
+			void set_speed(int speed);  
+			void stop(void);
+			void spin(int pwm) ;
+
+     private:
+
+            board var_controller_;
+            int motor_pin1_; 
+            int motor_pin2_;
+            int pwm_pin_ ;
   };
   
 #endif
