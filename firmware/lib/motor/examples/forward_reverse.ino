@@ -27,10 +27,10 @@ void loop()
 {
   motor1.forward();
   delay(5000);
-  motor2.stop_motor();
+  motor2.stop();
   delay(2000);
   motor1.reverse();
   delay(5000);
-  motor2.stop_motor();
+  motor2.stop();
   delay(2000);
 }
