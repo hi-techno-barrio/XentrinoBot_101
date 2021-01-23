@@ -2,7 +2,8 @@
 #define _IMU2_H_
 
 #include "I2Cdev.h"
-#include "imu_config.h"
+// #include "imu_config.h"
+#include "imu.h"
 
 #define G_TO_ACCEL 9.81
 #define MGAUSS_TO_UTESLA 0.1
