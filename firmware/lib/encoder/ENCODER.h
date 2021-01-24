@@ -21,12 +21,10 @@
 /**
  *  Quadrature mode configuration structure
  */
-enum Quadrature{
-  ON, //!<  Enable quadrature mode CPR = 4xPPR
-  OFF //!<  Disable quadrature mode / CPR = PPR
-};
 
-class Encoder: public Sensor{
+
+class Encoder
+{
  public:
     /**
     Encoder class constructor
@@ -35,8 +33,12 @@ class Encoder: public Sensor{
     @param ppr  impulses per rotation  (cpr=ppr*4)
     @param index index pin number (optional input)
     */
+    // !<  Enable quadrature mode CPR = 4xPPR OFF 
+    // !<  Disable quadrature mode / CPR = PPR
+    
+    enum Quadrature{ON,OFF };
     Encoder(int encA, int encB , float ppr );
-
+  
     /** encoder initialise pins */
     void init();
     /**
@@ -50,11 +52,13 @@ class Encoder: public Sensor{
      */
     void enableInterrupts(void (*doA)() = nullptr, void(*doB)() = nullptr);
     
+    /* Default Quadrature and Pull ups! */
+    void Encoder::defaultEnc();
     //  Encoder interrupt callback functions
     /** A channel callback function */
-    void handleA();
+    void call_intA();
     /** B channel callback function */
-    void handleB();
+    void call_intB();
     
     
     // pins A and B
@@ -63,7 +67,6 @@ class Encoder: public Sensor{
   
     // Encoder configuration
     Pullup pullup; //!< Configuration parameter internal or external pullups
-    Quadrature quadrature;//!< Configuration parameter enable or disable quadrature mode
     float cpr;//!< encoder cpr number
 
     // Abstract functions of the Sensor class implementation
@@ -95,11 +98,11 @@ class Encoder: public Sensor{
     int needsAbsoluteZeroSearch() override;
 
   private:
-  
-    volatile long pulse_counter;//!< current pulse counter
-    volatile long pulse_timestamp;//!< last impulse timestamp in us
-    volatile int A_active; //!< current active states of A channel
-    volatile int B_active; //!< current active states of B channel
+    Quadrature var_quadrature_;         // !< Configuration parameter enable or disable quadrature mode
+    volatile long pulse_counter;   // !< current pulse counter
+    volatile long pulse_timestamp; // !< last impulse timestamp in us
+    volatile int A_active;         // !< current active states of A channel
+    volatile int B_active;         // !< current active states of B channel
   
     // velocity calculation variables
     float prev_Th, pulse_per_second;
