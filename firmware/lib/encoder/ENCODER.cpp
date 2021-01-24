@@ -60,7 +60,7 @@ void Encoder::call_intA() {
       // CPR = PPR
       if(A && !digitalRead(pinB)){
         pulse_counter++;
-        pulse_timestamp = _micros();
+        pulse_timestamp = micros();
       }
       break;
   }
@@ -73,7 +73,7 @@ void Encoder::call_intB() {
   //     // CPR = 4xPPR
       if ( B != B_active ) {
         pulse_counter += (A_active != B_active) ? 1 : -1;
-        pulse_timestamp = _micros();
+        pulse_timestamp = micros();
         B_active = B;
       }
       break;
@@ -81,7 +81,7 @@ void Encoder::call_intB() {
       // CPR = PPR
       if(B && !digitalRead(pinA)){
         pulse_counter--;
-        pulse_timestamp = _micros();
+        pulse_timestamp = micros();
       }
       break;
   }
@@ -100,7 +100,7 @@ float Encoder::getAngle(){
 
 float Encoder::getVelocity(){
   // timestamp
-  long timestamp_us = _micros();
+  long timestamp_us = micros();
   // sampling time calculation
   float Ts = (timestamp_us - prev_timestamp_us) * 1e-6;
   // quick fix for strange cases (micros overflow)
@@ -143,7 +143,7 @@ int Encoder::needsAbsoluteZeroSearch(){
 float Encoder::initRelativeZero(){
   long angle_offset = -pulse_counter;
   pulse_counter = 0;
-  pulse_timestamp = _micros();
+  pulse_timestamp = micros();
   return _2PI * (angle_offset) / ((float)cpr);
 }
 // initialize index to zero
@@ -170,12 +170,12 @@ void Encoder::init(){
 
   // counter setup
   pulse_counter = 0;
-  pulse_timestamp = _micros();
+  pulse_timestamp = micros();
   // velocity calculation variables
   prev_Th = 0;
   pulse_per_second = 0;
   prev_pulse_counter = 0;
-  prev_timestamp_us = _micros();
+  prev_timestamp_us = micros();
 
   // initial cpr = PPR
   // change it if the mode is quadrature
