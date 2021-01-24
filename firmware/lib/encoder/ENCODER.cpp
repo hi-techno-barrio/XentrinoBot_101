@@ -190,13 +190,13 @@ void Encoder::enableInterrupts(void (*doA)(), void(*doB)()){
   switch(quadrature){
     case Quadrature::ON:
       // A callback and B callback
-      if(doA != nullptr) attachInterrupt(digitalPinToInterrupt(pinA), doA, CHANGE);
-      if(doB != nullptr) attachInterrupt(digitalPinToInterrupt(pinB), doB, CHANGE);
+      if(doA != nullptr) attachInterrupt(digitalPinToInterrupt(pinA), call_intA, CHANGE);
+      if(doB != nullptr) attachInterrupt(digitalPinToInterrupt(pinB), call_intB, CHANGE);
       break;
     case Quadrature::OFF:
       // A callback and B callback
-      if(doA != nullptr) attachInterrupt(digitalPinToInterrupt(pinA), doA, RISING);
-      if(doB != nullptr) attachInterrupt(digitalPinToInterrupt(pinB), doB, RISING);
+      if(doA != nullptr) attachInterrupt(digitalPinToInterrupt(pinA), call_intA, RISING);
+      if(doB != nullptr) attachInterrupt(digitalPinToInterrupt(pinB), call_intB, RISING);
       break;
   }
 
