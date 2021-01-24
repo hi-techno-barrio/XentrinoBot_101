@@ -6,10 +6,9 @@
   Encoder(int encA, int encB , int cpr, int index)
   - encA, encB    - encoder A and B pins
   - cpr           - counts per rotation number (cpm=ppm*4)
-  - index pin     - (optional input)
 */
 
-Encoder::Encoder(int _encA, int _encB , float _ppr, int _index){
+Encoder::Encoder(int _encA, int _encB , float _ppr){
 
   // Encoder measurement structure init
   // hardware pins
@@ -22,11 +21,9 @@ Encoder::Encoder(int _encA, int _encB , float _ppr, int _index){
   cpr = _ppr;
   A_active = 0;
   B_active = 0;
-  I_active = 0;
   // index pin
   index_pin = _index; // its 0 if not used
-  index_pulse_counter = 0;
-
+ 
   // velocity calculation variables
   prev_Th = 0;
   pulse_per_second = 0;
@@ -83,27 +80,6 @@ void Encoder::handleB() {
   }
 }
 
-// Index channel
-void Encoder::handleIndex() {
-  if(hasIndex()){
-    int I = digitalRead(index_pin);
-    if(I && !I_active){
-      // align encoder on each index
-      if(index_pulse_counter){
-        long tmp = pulse_counter;
-        // corrent the counter value
-        pulse_counter = round((double)pulse_counter/(double)cpr)*cpr;
-        // preserve relative speed
-        prev_pulse_counter += pulse_counter - tmp;
-      } else {
-      // initial offset
-        index_pulse_counter = pulse_counter;
-      }
-    }
-    I_active = I;
-  }
-}
-
 /*
 	Shaft angle calculation
 */
@@ -114,6 +90,7 @@ float Encoder::getAngle(){
   Shaft velocity calculation
   function using mixed time and frequency measurement technique
 */
+
 float Encoder::getVelocity(){
   // timestamp
   long timestamp_us = _micros();
@@ -154,10 +131,7 @@ float Encoder::getVelocity(){
 int Encoder::needsAbsoluteZeroSearch(){
   return index_pulse_counter == 0;
 }
-// getter for index pin
-int Encoder::hasAbsoluteZero(){
-  return hasIndex();
-}
+
 // initialize counter to zero
 float Encoder::initRelativeZero(){
   long angle_offset = -pulse_counter;
@@ -171,10 +145,6 @@ float Encoder::initAbsoluteZero(){
   prev_pulse_counter = pulse_counter;
   return (index_pulse_counter) / ((float)cpr) * (_2PI);
 }
-// private function used to determine if encoder has index
-int Encoder::hasIndex(){
-  return index_pin != 0;
-}
 
 
 // encoder initialisation of the hardware pins
@@ -185,11 +155,10 @@ void Encoder::init(){
   if(pullup == Pullup::INTERN){
     pinMode(pinA, INPUT_PULLUP);
     pinMode(pinB, INPUT_PULLUP);
-    if(hasIndex()) pinMode(index_pin,INPUT_PULLUP);
+
   }else{
     pinMode(pinA, INPUT);
     pinMode(pinB, INPUT);
-    if(hasIndex()) pinMode(index_pin,INPUT);
   }
 
   // counter setup
@@ -209,7 +178,7 @@ void Encoder::init(){
 
 // function enabling hardware interrupts of the for the callback provided
 // if callback is not provided then the interrupt is not enabled
-void Encoder::enableInterrupts(void (*doA)(), void(*doB)(), void(*doIndex)()){
+void Encoder::enableInterrupts(void (*doA)(), void(*doB)()){
   // attach interrupt if functions provided
   switch(quadrature){
     case Quadrature::ON:
@@ -224,6 +193,4 @@ void Encoder::enableInterrupts(void (*doA)(), void(*doB)(), void(*doIndex)()){
       break;
   }
 
-  // if index used initialize the index interrupt
-  if(hasIndex() && doIndex != nullptr) attachInterrupt(digitalPinToInterrupt(index_pin), doIndex, CHANGE);
 }
