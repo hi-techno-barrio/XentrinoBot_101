@@ -1,8 +1,6 @@
 #ifndef ENCODER_LIB_H
 #define ENCODER_LIB_H
 
-#include "Arduino.h"
-
 // sign funciton
 #define sign(a) ( ( (a) < 0 )  ?  -1   : ( (a) > 0 ) )
 // utility defines
@@ -52,16 +50,6 @@ class Encoder
      * @param doIndex pointer to the Index channel interrupt handler function
      * 
      */
-    void enableInterrupts(void (*doA)() = nullptr, void(*doB)() = nullptr);
-    
-    /* Default Quadrature and Pull ups! */
-    void Encoder::defaultEnc();
-    //  Encoder interrupt callback functions
-    /** A channel callback function */
-    void call_intA();
-    /** B channel callback function */
-    void call_intB();
-    
     
     // pins A and B
     int pinA; //!< encoder hardware pin A
@@ -110,6 +98,13 @@ class Encoder
     // velocity calculation variables
     float prev_Th, pulse_per_second;
     volatile long prev_pulse_counter, prev_timestamp_us;
+       //  Encoder interrupt callback functions
+    /** A channel callback function */
+    void call_intA();
+    /** B channel callback function */
+    void call_intB();
+    
+    
 };
 
 
