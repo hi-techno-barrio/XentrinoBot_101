@@ -11,8 +11,10 @@
 Encoder::Encoder(Quadrature quadrature, int _encA, int _encB , float _ppr){
  
  // initiate quadrature
- var_quadrature_(quadrature);  
-
+ var_quadrature_(quadrature);
+ 
+ // default external pullup! 
+  pullup = Pullup::EXTERN;
 // Encoder measurement structure init
   // hardware pins
   pinA = _encA;
