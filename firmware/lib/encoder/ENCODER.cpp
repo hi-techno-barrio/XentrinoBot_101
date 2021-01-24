@@ -8,9 +8,12 @@
   - cpr           - counts per rotation number (cpm=ppm*4)
 */
 
-Encoder::Encoder(int _encA, int _encB , float _ppr){
+Encoder::Encoder(Quadrature quadrature, int _encA, int _encB , float _ppr){
+ 
+ // initiate quadrature
+ var_quadrature_(quadrature);  
 
-  // Encoder measurement structure init
+// Encoder measurement structure init
   // hardware pins
   pinA = _encA;
   pinB = _encB;
@@ -21,16 +24,18 @@ Encoder::Encoder(int _encA, int _encB , float _ppr){
   cpr = _ppr;
   A_active = 0;
   B_active = 0;
-  // index pin
-  index_pin = _index; // its 0 if not used
  
   // velocity calculation variables
   prev_Th = 0;
   pulse_per_second = 0;
   prev_pulse_counter = 0;
   prev_timestamp_us = _micros();
-
-  // extern pullup as default
+  
+}
+// initiate encoder default!
+void Encoder::defaultEnc()
+{
+ // extern pullup as default
   pullup = Pullup::EXTERN;
   // enable quadrature encoder by default
   quadrature = Quadrature::ON;
@@ -38,9 +43,9 @@ Encoder::Encoder(int _encA, int _encB , float _ppr){
 
 //  Encoder interrupt callback functions
 // A channel
-void Encoder::handleA() {
+void Encoder::call_intA() {
   int A = digitalRead(pinA);
-  switch (quadrature){
+  switch (var_quadrature_){
     case Quadrature::ON:
       // CPR = 4xPPR
       if ( A != A_active ) {
@@ -59,9 +64,9 @@ void Encoder::handleA() {
   }
 }
 // B channel
-void Encoder::handleB() {
+void Encoder::call_intB() {
   int B = digitalRead(pinB);
-  switch (quadrature){
+  switch (var_quadrature_){
     case Quadrature::ON:
   //     // CPR = 4xPPR
       if ( B != B_active ) {
