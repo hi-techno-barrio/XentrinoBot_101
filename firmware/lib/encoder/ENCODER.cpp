@@ -1,5 +1,6 @@
 
 #include "ENCODER.h"
+
 /*
   Encoder(int encA, int encB , int cpr, int index)
   - encA, encB    - encoder A and B pins
@@ -183,5 +184,8 @@ void Encoder::init(){
        attachInterrupt(digitalPinToInterrupt(pinA),call_intA, RISING);
        attachInterrupt(digitalPinToInterrupt(pinB),call_intB, RISING);
       break;
-   } //switch
- } //  Encoder init
+      } //switch
+
+ } //encoder
+
+
