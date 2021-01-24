@@ -26,17 +26,22 @@
 class Encoder
 {
  public:
-    /**
+   
+
+    // !<  Enable quadrature mode CPR = 4xPPR OFF 
+    // !<  Disable quadrature mode / CPR = PPR    
+    enum Quadrature{ON,OFF };
+
+    // Pullup configuation structure
+    enum Pullup{ INTERN,EXTERN};
+
+ /**
     Encoder class constructor
     @param encA  encoder B pin
     @param encB  encoder B pin
     @param ppr  impulses per rotation  (cpr=ppr*4)
     @param index index pin number (optional input)
     */
-    // !<  Enable quadrature mode CPR = 4xPPR OFF 
-    // !<  Disable quadrature mode / CPR = PPR
-    
-    enum Quadrature{ON,OFF };
     Encoder(int encA, int encB , float ppr );
   
     /** encoder initialise pins */
@@ -65,8 +70,7 @@ class Encoder
     int pinA; //!< encoder hardware pin A
     int pinB; //!< encoder hardware pin B
   
-    // Encoder configuration
-    Pullup pullup; //!< Configuration parameter internal or external pullups
+   
     float cpr;//!< encoder cpr number
 
     // Abstract functions of the Sensor class implementation
@@ -99,6 +103,8 @@ class Encoder
 
   private:
     Quadrature var_quadrature_;         // !< Configuration parameter enable or disable quadrature mode
+     // Encoder configuration
+    Pullup pullup; //!< Configuration parameter internal or external pullups
     volatile long pulse_counter;   // !< current pulse counter
     volatile long pulse_timestamp; // !< last impulse timestamp in us
     volatile int A_active;         // !< current active states of A channel
