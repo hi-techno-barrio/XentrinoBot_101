@@ -24,7 +24,7 @@ class Encoder: public Sensor{
     @param ppr  impulses per rotation  (cpr=ppr*4)
     @param index index pin number (optional input)
     */
-    Encoder(int encA, int encB , float ppr, int index = 0);
+    Encoder(int encA, int encB , float ppr );
 
     /** encoder initialise pins */
     void init();
@@ -37,22 +37,19 @@ class Encoder: public Sensor{
      * @param doIndex pointer to the Index channel interrupt handler function
      * 
      */
-    void enableInterrupts(void (*doA)() = nullptr, void(*doB)() = nullptr, void(*doIndex)() = nullptr);
+    void enableInterrupts(void (*doA)() = nullptr, void(*doB)() = nullptr);
     
     //  Encoder interrupt callback functions
     /** A channel callback function */
     void handleA();
     /** B channel callback function */
     void handleB();
-    /** Index channel callback function */
-    void handleIndex();
     
     
     // pins A and B
     int pinA; //!< encoder hardware pin A
     int pinB; //!< encoder hardware pin B
-    int index_pin; //!< index pin
-
+  
     // Encoder configuration
     Pullup pullup; //!< Configuration parameter internal or external pullups
     Quadrature quadrature;//!< Configuration parameter enable or disable quadrature mode
@@ -87,15 +84,12 @@ class Encoder: public Sensor{
     int needsAbsoluteZeroSearch() override;
 
   private:
-    int hasIndex(); //!< function returning 1 if encoder has index pin and 0 if not.
-
+  
     volatile long pulse_counter;//!< current pulse counter
     volatile long pulse_timestamp;//!< last impulse timestamp in us
     volatile int A_active; //!< current active states of A channel
     volatile int B_active; //!< current active states of B channel
-    volatile int I_active; //!< current active states of Index channel
-    volatile long index_pulse_counter; //!< impulse counter number upon first index interrupt
-
+  
     // velocity calculation variables
     float prev_Th, pulse_per_second;
     volatile long prev_pulse_counter, prev_timestamp_us;
