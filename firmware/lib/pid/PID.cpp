@@ -10,7 +10,7 @@ PIDController::PIDController(float P, float I, float D, float ramp, float limit)
     , error_prev(0.0)
     , output_prev(0.0)
 {
-    timestamp_prev = _micros()*1e-6;
+    timestamp_prev = micros()*1e-6;
 }
 
 // PID controller function
