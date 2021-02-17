@@ -1,56 +1,39 @@
+#include "Arduino.h"
 #include "PID.h"
 
-PIDController::PIDController(float P, float I, float D, float ramp, float limit)
-    : P(P)
-    , I(I)
-    , D(D)
-    , output_ramp(ramp)    // output derivative limit [volts/second]
-    , limit(limit)         // output supply limit     [volts]
-    , integral_prev(0.0)
-    , error_prev(0.0)
-    , output_prev(0.0)
+PID::PID(float min_val, float max_val, float kp, float ki, float kd):
+    min_val_(min_val),
+    max_val_(max_val),
+    kp_(kp),
+    ki_(ki),
+    kd_(kd)
 {
-    timestamp_prev = micros()*1e-6;
 }
 
-// PID controller function
-float PIDController::operator() (float error){
-    // calculate the time from the last call
-    unsigned long timestamp_now = _micros();
-    float Ts = (timestamp_now - timestamp_prev) * 1e-6;
-    // quick fix for strange cases (micros overflow)
-    if(Ts <= 0 || Ts > 0.5) Ts = 1e-3; 
+double PID::compute(float setpoint, float measured_value)
+{
+    double error;
+    double pid;
 
-    // u(s) = (P + I/s + Ds)e(s)
-    // Discrete implementations
-    // proportional part 
-    // u_p  = P *e(k)
-    float proportional = P * error;
-    // Tustin transform of the integral part
-    // u_ik = u_ik_1  + I*Ts/2*(ek + ek_1)
-    float integral = integral_prev + I*Ts*0.5*(error + error_prev);
-    // antiwindup - limit the output voltage_q
-    integral = _constrain(integral, -limit, limit);
-    // Discrete derivation
-    // u_dk = D(ek - ek_1)/Ts
-    float derivative = D*(error - error_prev)/Ts;
+    //setpoint is constrained between min and max to prevent pid from having too much error
+    error = setpoint - measured_value;
+    integral_ += error;
+    derivative_ = error - prev_error_;
 
-    // sum all the components
-    float output = proportional + integral + derivative;
-    // antiwindup - limit the output variable
-    output = _constrain(output, -limit, limit);
+    if(setpoint == 0 && error == 0)
+    {
+        integral_ = 0;
+    }
 
-    // limit the acceleration by ramping the output
-    float output_rate = (output - output_prev)/Ts;
-    if (output_rate > output_ramp)
-        output = output_prev + output_ramp*Ts;
-    else if (output_rate < -output_ramp)
-        output = output_prev - output_ramp*Ts;
+    pid = (kp_ * error) + (ki_ * integral_) + (kd_ * derivative_);
+    prev_error_ = error;
 
-    // saving for the next pass
-    integral_prev = integral;
-    output_prev = output;
-    error_prev = error;
-    timestamp_prev = timestamp_now;
-    return output;
+    return constrain(pid, min_val_, max_val_);
+}
+
+void PID::updateConstants(float kp, float ki, float kd)
+{
+    kp_ = kp;
+    ki_ = ki;
+    kd_ = kd;
 }
