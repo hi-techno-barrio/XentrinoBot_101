@@ -4,7 +4,6 @@
 //   ROS
 //   THe Construct
 //   
-
 //ROS headers
 #if (ARDUINO >= 100)
  #include <Arduino.h>
@@ -26,10 +25,8 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS // comment this out on Non-Teensy boards
 #include "Encoder.h"
 
-#define IMU_PUBLISH_RATE 20 //hz
 #define COMMAND_RATE 20 //hz
 #define DEBUG_RATE 5
-
 
 Encoder encoder(MOTOR1_ENCODER_A, MOTOR1_ENCODER_B, COUNTS_PER_REV);
 Encoder encoder(MOTOR2_ENCODER_A, MOTOR2_ENCODER_B, COUNTS_PER_REV); 
@@ -39,7 +36,6 @@ Motor motor2(Motor::CONTROLLER, MOTOR2_PWM, MOTOR2_IN_A, MOTOR2_IN_B);
 
 PID   motor1_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 PID   motor2_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
-
 
 Kinematics kinematics(Kinematics::LINO_BASE, MAX_RPM, WHEEL_DIAMETER, FR_WHEELS_DISTANCE, LR_WHEELS_DISTANCE);
 
@@ -51,18 +47,13 @@ unsigned long callback_time = 0;
 
 //callback function prototypes
 void commandCallback(const geometry_msgs::Twist& cmd_msg);
+
 ros::NodeHandle nh;
-
 ros::Subscriber<geometry_msgs::Twist> cmd_sub("cmd_vel", commandCallback);
-
 sensor_msgs::Imu raw_imu_msg;
 ros::Publisher raw_imu_pub("raw_imu", &raw_imu_msg);
-
 geometry_msgs::Vector3 raw_vel_msg;
 ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
-
-ros::Time current_time;
-ros::Time last_time;
 
 void setup()
 {
@@ -130,17 +121,17 @@ void commandCallback(const geometry_msgs::Twist& cmd_msg)
 {
     //callback function every time linear and angular speed is received from 'cmd_vel' topic
     //this callback function receives cmd_msg object where linear and angular speed are stored
-    g_req_linear_vel_x = cmd_msg.linear.x;
-    g_req_linear_vel_y = cmd_msg.linear.y;
-    g_req_angular_vel_z = cmd_msg.angular.z;
+    req_linear_vel_x = cmd_msg.linear.x;
+    req_linear_vel_y = cmd_msg.linear.y;
+    req_angular_vel_z = cmd_msg.angular.z;
 
-    g_prev_command_time = millis();
+    callback_time = millis();
 }
 
 void moveBase()
 {
     //get the required rpm for each motor based on required velocities, and base used
-    Kinematics::rpm req_rpm = kinematics.getRPM(g_req_linear_vel_x, g_req_linear_vel_y, g_req_angular_vel_z);
+    Kinematics::rpm req_rpm = kinematics.getRPM(req_linear_vel_x, req_linear_vel_y, req_angular_vel_z);
 
     //get the current speed of each motor
     int current_rpm1 = encoder1.getRPM();
@@ -152,7 +143,7 @@ void moveBase()
     motor2_controller.spin(motor2_pid.compute(req_rpm.motor2, current_rpm2));
 	//need to auto-tune via firmaware
     Kinematics::velocities current_vel;
-	
+	//for 2WD only!
     current_vel = kinematics.getVelocities(current_rpm1, current_rpm2, current_rpm3, current_rpm4);
   
     //pass velocities to publisher object
