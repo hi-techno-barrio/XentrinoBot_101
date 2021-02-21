@@ -37,7 +37,7 @@ Motor motor2(Motor::CONTROLLER, MOTOR2_PWM, MOTOR2_IN_A, MOTOR2_IN_B);
 PID   motor1_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 PID   motor2_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 
-Kinematics kinematics(Kinematics::LINO_BASE, MAX_RPM, WHEEL_DIAMETER, FR_WHEELS_DISTANCE, LR_WHEELS_DISTANCE);
+Kinematics kinematics(Kinematics::XENTRINO_BASE, MAX_RPM, WHEEL_DIAMETER, FR_WHEELS_DISTANCE, LR_WHEELS_DISTANCE);
 
 float req_linear_vel_x = 0;
 float req_linear_vel_y = 0;
