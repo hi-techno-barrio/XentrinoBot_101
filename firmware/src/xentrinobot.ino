@@ -1,176 +1,204 @@
-#include <Adafruit_MotorShield.h>
+// Author: Christopher M Coballes
+// Credits:
+//   Linorobot
+//   ROS
+//   THe Construct
+//   
+
+//ROS headers
+#if (ARDUINO >= 100)
+ #include <Arduino.h>
+#else
+ #include <WProgram.h>
+#endif
 #include <Wire.h>
-#include <PID_v1.h>
 #include <ros.h>
-#include <std_msgs/String.h>
-#include <geometry_msgs/Vector3Stamped.h>
-#include <geometry_msgs/Twist.h>
 #include <ros/time.h>
- 
-//initializing all the variables
-#define LOOPTIME                      100     //Looptime in millisecond
-const byte noCommLoopMax = 10;                //number of main loops the robot will execute without communication before stopping
-unsigned int noCommLoops = 0;                 //main loop without communication counter
+#include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/Twist.h>
+#include "xentrino_config.h"
+#include "Imu.h"
+#include "Motor.h"
+#include "Kinematics.h"
+#include "PID.h"
+#include "Imu.h"
 
-double speed_cmd_left2 = 0;      
+#define ENCODER_OPTIMIZE_INTERRUPTS // comment this out on Non-Teensy boards
+#include "Encoder.h"
 
-// #define encoder
-
-const int PIN_SIDE_LIGHT_LED = 46;                  //Side light blinking led pin
-
-unsigned long lastMilli = 0;
-
-#define motor 
+#define IMU_PUBLISH_RATE 20 //hz
+#define COMMAND_RATE 20 //hz
+#define DEBUG_RATE 5
 
 
-#define PID
+Encoder encoder(MOTOR1_ENCODER_A, MOTOR1_ENCODER_B, COUNTS_PER_REV);
+Encoder encoder(MOTOR2_ENCODER_A, MOTOR2_ENCODER_B, COUNTS_PER_REV); 
 
-  
+Motor motor1(Motor::CONTROLLER MOTOR1_PWM, MOTOR1_IN_A, MOTOR1_IN_B);
+Motor motor2(Motor::CONTROLLER, MOTOR2_PWM, MOTOR2_IN_A, MOTOR2_IN_B); 
+
+PID   motor1_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
+PID   motor2_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
+
+
+Kinematics kinematics(Kinematics::LINO_BASE, MAX_RPM, WHEEL_DIAMETER, FR_WHEELS_DISTANCE, LR_WHEELS_DISTANCE);
+
+float req_linear_vel_x = 0;
+float req_linear_vel_y = 0;
+float req_angular_vel_z = 0;
+
+unsigned long callback_time = 0;
+
+//callback function prototypes
+void commandCallback(const geometry_msgs::Twist& cmd_msg);
 ros::NodeHandle nh;
 
-//function that will be called when receiving command from host
-void handle_cmd (const geometry_msgs::Twist& cmd_vel) {
-  noCommLoops = 0;                                                  //Reset the counter for number of main loops without communication
-  
-  speed_req = cmd_vel.linear.x;                                     //Extract the commanded linear speed from the message
+ros::Subscriber<geometry_msgs::Twist> cmd_sub("cmd_vel", commandCallback);
 
-  angular_speed_req = cmd_vel.angular.z;                            //Extract the commanded angular speed from the message
-  
-  speed_req_left = speed_req - angular_speed_req*(wheelbase/2);     //Calculate the required speed for the left motor to comply with commanded linear and angular speeds
-  speed_req_right = speed_req + angular_speed_req*(wheelbase/2);    //Calculate the required speed for the right motor to comply with commanded linear and angular speeds
+sensor_msgs::Imu raw_imu_msg;
+ros::Publisher raw_imu_pub("raw_imu", &raw_imu_msg);
+
+geometry_msgs::Vector3 raw_vel_msg;
+ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
+
+ros::Time current_time;
+ros::Time last_time;
+
+void setup()
+{
+    nh.initNode();
+    nh.getHardware()->setBaud(57600);
+    nh.subscribe(cmd_sub);
+    nh.advertise(raw_vel_pub);
+    nh.advertise(raw_imu_pub);
+
+    while (!nh.connected())
+    {
+        nh.spinOnce();
+    }
+    nh.loginfo("XENTRINOBOT CONNECTED");
+    delay(1);
 }
 
-ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", handle_cmd);   //create a subscriber to ROS topic for velocity commands (will execute "handle_cmd" function when receiving data)
-geometry_msgs::Vector3Stamped speed_msg;                                //create a "speed_msg" ROS message
-ros::Publisher speed_pub("speed", &speed_msg);                          //create a publisher to ROS topic "speed" using the "speed_msg" type
-
-//__________________________________________________________________________
-
-void setup() {
-
-  nh.initNode();                            //init ROS node
-  nh.getHardware()->setBaud(57600);         //set baud for ROS serial communication
-  nh.subscribe(cmd_vel);                    //suscribe to ROS topic for velocity commands
-  nh.advertise(speed_pub);                  //prepare to publish speed in ROS topic
+void loop()
+{
+    static unsigned long control_time = 0;
+    static unsigned long debug_time = 0;
+    static bool imu_is_initialized;
  
-   //initialize motor
-   
-  //setting motor speeds to zero
- 
-  //setting PID parameters
-  // Define the rotary encoder for left motor
-   //attachInterrupt(0, encoderLeftMotor, RISING);
+    //this block stops the motor when no command is received
+   if ((millis() - callback_time) >=(1000 / COMMAND_RATE))
+    {
+        stopBase();
+    } 
+//this block drives the robot based on defined rate	
+  if ((millis() - control_time) >= (1000 / COMMAND_RATE))
+	{
+	 moveBase();	
+	 //sanity check if the IMU is connected
+        if (!imu_is_initialized)
+        {
+            imu_is_initialized = initIMU();
 
-  // Define the rotary encoder for right motor
-  //attachInterrupt(1, encoderRightMotor, RISING);
-}
-
-//_________________________________________________________________________
-
-void loop() {
-  nh.spinOnce();
- // algorithm 1
- if((millis()-lastMilli) >= LOOPTIME)   
-  {                                                                           // enter timed loop
-    lastMilli = millis();
-    
-    if (!nh.connected()){
-    buzzer  
+            if(imu_is_initialized)
+                nh.loginfo("IMU Initialized");
+            else
+                nh.logfatal("IMU failed to initialize. Check your IMU connection.");
         }
-     }
-    
-  else{
-    // alarm
-     }
-    
-  //algo 1  detect disturbance   
-    if (abs(pos_left) < 5){                                                   //Avoid taking in account small disturbances
-      speed_act_left = 0;
+        else
+        {
+            publishIMU();
+        }
+        control_time = millis();
+	}
+	
+	
+    //this block displays the encoder readings. change DEBUG to 0 if you don't want to display
+    if(DEBUG)
+    {
+        if ((millis() - prev_debug_time) >= (1000 / DEBUG_RATE))
+        {
+            printDebug();
+            prev_debug_time = millis();
+        }
     }
- 
-    else {
-     // get motor speed 1
-       speed_act_left=((pos_left/encoder_cpr)*2*PI)*(1000/LOOPTIME)*radius;           // calculate speed of left wheel
-    }
-    
- // algo 1 detect disturbance
-    if (abs(pos_right) < 5){                                                  //Avoid taking in account small disturbances
-      speed_act_right = 0;
-    }
-    else {
-    // get motor speed 2
-    //speed_act_right=((pos_right/encoder_cpr)*2*PI)*(1000/LOOPTIME)*radius;          // calculate speed of right wheel
-    }
-    
-    pos_left = 0;
-    pos_right = 0;
-     //algo 3 invoke speed boundaries
-     speed_cmd_left = constrain(speed_cmd_left, -max_speed, max_speed);
-     PID_leftMotor.Compute();                                                 
-    // compute PWM value for left motor. Check constant definition comments for more information.
-    PWM_leftMotor = constrain(((speed_req_left+sgn(speed_req_left)*min_speed_cmd)/speed_to_pwm_ratio) + (speed_cmd_left/speed_to_pwm_ratio), -255, 255); //
-    
-    // algo 2 check idle command  
-   if ( (noCommLoops >= noCommLoopMax) || (speed_req_left == 0) )  {     //Stopping if too much time without command
-      //Stopping
-      leftMotor->setSpeed(0);
-      leftMotor->run(BRAKE);
-      rightMotor->setSpeed(0);
-      rightMotor->run(BRAKE);
-    }
-    else {
-     motor1.spin() // if actual pwm is positive move forward else move backward
-     motor2.spin
-    }
-     /*if (PWM_leftMotor > 0){                          //Going forward
-      leftMotor->setSpeed(abs(PWM_leftMotor));
-      leftMotor->run(BACKWARD);
-    }
-    else {                                               //Going backward
-      leftMotor->setSpeed(abs(PWM_leftMotor));
-      leftMotor->run(FORWARD);
-    }
-    */
-    
-    
-
-    if((millis()-lastMilli) >= LOOPTIME){         //write an error if execution time of the loop in longer than the specified looptime
-      Serial.println(" TOO LONG ");
-    }
-
-    noCommLoops++;
-    if (noCommLoops == 65535){
-      noCommLoops = noCommLoopMax;
-    }
-    
-    publishSpeed(LOOPTIME);   //Publish odometry on ROS topic
-  }
- }
-
-//Publish function for odometry, uses a vector type message to send the data (message type is not meant for that but that's easier than creating a specific message type)
-void publishSpeed(double time) {
-  speed_msg.header.stamp = nh.now();      //timestamp for odometry data
-  speed_msg.vector.x = speed_act_left;    //left wheel speed (in m/s)
-  speed_msg.vector.y = speed_act_right;   //right wheel speed (in m/s)
-  speed_msg.vector.z = time/1000;         //looptime, should be the same as specified in LOOPTIME (in s)
-  speed_pub.publish(&speed_msg);
-  nh.spinOnce();
-  nh.loginfo("Publishing odometry");
+    //call all the callbacks waiting to be called
+    nh.spinOnce();
 }
 
-//better quadrature
-//Left motor encoder counter
-void encoderLeftMotor() {
-  if (digitalRead(PIN_ENCOD_A_MOTOR_LEFT) == digitalRead(PIN_ENCOD_B_MOTOR_LEFT)) pos_left++;
-  else pos_left--;
+void commandCallback(const geometry_msgs::Twist& cmd_msg)
+{
+    //callback function every time linear and angular speed is received from 'cmd_vel' topic
+    //this callback function receives cmd_msg object where linear and angular speed are stored
+    g_req_linear_vel_x = cmd_msg.linear.x;
+    g_req_linear_vel_y = cmd_msg.linear.y;
+    g_req_angular_vel_z = cmd_msg.angular.z;
+
+    g_prev_command_time = millis();
 }
 
-//Right motor encoder counter
-void encoderRightMotor() {
-  if (digitalRead(PIN_ENCOD_A_MOTOR_RIGHT) == digitalRead(PIN_ENCOD_B_MOTOR_RIGHT)) pos_right--;
-  else pos_right++;
+void moveBase()
+{
+    //get the required rpm for each motor based on required velocities, and base used
+    Kinematics::rpm req_rpm = kinematics.getRPM(g_req_linear_vel_x, g_req_linear_vel_y, g_req_angular_vel_z);
+
+    //get the current speed of each motor
+    int current_rpm1 = encoder1.getRPM();
+    int current_rpm2 = encoder2.getRPM();
+  
+    //the required rpm is capped at -/+ MAX_RPM to prevent the PID from having too much error
+    //the PWM value sent to the motor driver is the calculated PID based on required RPM vs measured RPM
+    motor1_controller.spin(motor1_pid.compute(req_rpm.motor1, current_rpm1));
+    motor2_controller.spin(motor2_pid.compute(req_rpm.motor2, current_rpm2));
+	//need to auto-tune via firmaware
+    Kinematics::velocities current_vel;
+	
+    current_vel = kinematics.getVelocities(current_rpm1, current_rpm2, current_rpm3, current_rpm4);
+  
+    //pass velocities to publisher object
+    raw_vel_msg.linear_x = current_vel.linear_x;
+    raw_vel_msg.linear_y = current_vel.linear_y;
+    raw_vel_msg.angular_z = current_vel.angular_z;
+
+    //publish raw_vel_msg
+    raw_vel_pub.publish(&raw_vel_msg);
 }
 
-template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
+void stopBase()
+{
+    g_req_linear_vel_x = 0;
+    g_req_linear_vel_y = 0;
+    g_req_angular_vel_z = 0;
 }
+
+void publishIMU()
+{
+    //pass accelerometer data to imu object
+    raw_imu_msg.linear_acceleration = readAccelerometer();
+
+    //pass gyroscope data to imu object
+    raw_imu_msg.angular_velocity = readGyroscope();
+
+    //pass accelerometer data to imu object
+    raw_imu_msg.magnetic_field = readMagnetometer();
+
+    //publish raw_imu_msg
+    raw_imu_pub.publish(&raw_imu_msg);
+}
+
+
+float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void printDebug()
+{
+    char buffer[50];
+
+    sprintf (buffer, "Encoder FrontLeft  : %ld", motor1_encoder.read());
+    nh.loginfo(buffer);
+    sprintf (buffer, "Encoder FrontRight : %ld", motor2_encoder.read());
+    nh.loginfo(buffer);
+}
+
