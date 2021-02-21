@@ -157,9 +157,9 @@ void moveBase()
 
 void stopBase()
 {
-    g_req_linear_vel_x = 0;
-    g_req_linear_vel_y = 0;
-    g_req_angular_vel_z = 0;
+    req_linear_vel_x = 0;
+    req_linear_vel_y = 0;
+    req_angular_vel_z = 0;
 }
 
 void publishIMU()
