@@ -1,5 +1,6 @@
 // Author: Christopher M Coballes
 // Hi-Techno Barrio
+// Credits: Linorobot/Sunjik/ClearPath
 //ROS headers
 #if (ARDUINO >= 100)
  #include <Arduino.h>
