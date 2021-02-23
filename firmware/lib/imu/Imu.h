@@ -2,72 +2,33 @@
 
 #ifndef _IMU_H_
 #define _IMU_H_
-
+#include <Kalman.h>             // Source: https://github.com/TKJElectronics/KalmanFilter
 #include "I2Cdev.h"
 
 #include <Wire.h>
 #include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/Quaternion.h"
+#include "MPU6050.h"
+#include "fake_mag.h"
+
 #define G_TO_ACCEL 9.81
 #define MGAUSS_TO_UTESLA 0.1
 #define UTESLA_TO_TESLA 0.000001
-
-#ifdef USE_GY85_IMU
-    #include "ADXL345.h"
-    #include "ITG3200.h"
-    #include "HMC5883L.h"
-
-    #define ACCEL_SCALE 1 / 256 // LSB/g
-    #define GYRO_SCALE 1 / 14.375 // LSB/(deg/s)
-    #define MAG_SCALE 0.92 * MGAUSS_TO_UTESLA // uT/LSB
-
-    ADXL345 accelerometer;
-    ITG3200 gyroscope;
-    HMC5883L magnetometer;
-#endif
-
-#ifdef USE_MPU6050_IMU
-    #include "MPU6050.h"
-    #include "fake_mag.h"
-
-    #define ACCEL_SCALE 1 / 16384 // LSB/g
-    #define GYRO_SCALE 1 / 131 // LSB/(deg/s)
-    #define MAG_SCALE 0.3 // uT/LSB
+#define ACCEL_SCALE 1 / 16384    // LSB/g
+#define GYRO_SCALE 1 / 131       // LSB/(deg/s)
+#define MAG_SCALE 0.3            // uT/LSB
     
-    MPU6050 accelerometer;
-    MPU6050 gyroscope;    
-    FakeMag magnetometer;
-#endif
-
-#ifdef USE_MPU9150_IMU
-    #include "MPU9150.h"
-
-    #define ACCEL_SCALE 1 / 16384 // LSB/g
-    #define GYRO_SCALE 1 / 131 // LSB/(deg/s)
-    #define MAG_SCALE 0.3 // uT/LSB
-    
-    MPU9150 accelerometer;
-    MPU9150 gyroscope;    
-    MPU9150 magnetometer;
-#endif
-
-#ifdef USE_MPU9250_IMU
-    #include "MPU9250.h"
-
-    #define ACCEL_SCALE 1 / 16384 // LSB/g
-    #define GYRO_SCALE 1 / 131 // LSB/(deg/s)
-    #define MAG_SCALE 0.6 // uT/LSB
-    
-    MPU9250 accelerometer;
-    MPU9250 gyroscope;    
-    MPU9250 magnetometer;
-#endif
-
+MPU6050 accelerometer;
+MPU6050 gyroscope;    
+FakeMag magnetometer;
+MPU6050 orientation; 
+	                              // 1688 factory default for my test chip
 
 bool initIMU()
 {
     Wire.begin();
     bool ret;
-    
+
     accelerometer.initialize();
     ret = accelerometer.testConnection();
     if(!ret)
@@ -82,7 +43,7 @@ bool initIMU()
     ret = magnetometer.testConnection();
     if(!ret)
         return false;
-
+    
     return true;
 }
 
@@ -128,9 +89,88 @@ geometry_msgs::Vector3 readMagnetometer()
     return mag;
 }
 
+geometry_msgs::Quaternion readOrientation()
+{
+  geometry_msgs::Quaternion  orient ;
+  
+  Kalman kalmanX; // Create the Kalman instances
+  Kalman kalmanY;
+  uint32_t timer;
+  
+   /* IMU Data */
+   double accX, accY, accZ;
+   double gyroX, gyroY, gyroZ;
+   double gyroXangle, gyroYangle; // Angle calculate using the gyro only
+   //double compAngleX, compAngleY; // Calculated angle using a complementary filter
+   double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
+   double dt = (double)(micros() - timer) / 1000000; // Calculate delta time
+   
+   //pass accelerometer data to imu object
+   accX = orientation.getAccelerationX();
+   accY = orientation.getAccelerationY();
+   accZ = orientation.getAccelerationX();
+   gyroX = orientation.getRotationX();
+   gyroY = orientation.getRotationY();
+   gyroZ = orientation.getRotationZ();
+ 
+   timer = micros();
 
+   // restricted pitch for 90 degress else robot will be stumbled :)
+   double roll  = atan2(accY, accZ) * RAD_TO_DEG;
+   double pitch = atan(-accX / sqrt(accY * accY + accZ * accZ)) * RAD_TO_DEG;
+   double gyroXrate = gyroX / 131.0; // Convert to deg/s
+   double gyroYrate = gyroY / 131.0; // Convert to deg/s
+   
+// This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
+  if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90)) {
+    kalmanX.setAngle(roll);
+    //compAngleX = roll;
+    kalAngleX = roll;
+    gyroXangle = roll;
+  } else
+    kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
+
+  if (abs(kalAngleX) > 90)
+    gyroYrate = -gyroYrate; // Invert rate, so it fits the restriced accelerometer reading
+   kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt);
+   
+    gyroXangle += gyroXrate * dt; // Calculate gyro angle without any filter
+    gyroYangle += gyroYrate * dt;
+ 
+  // Reset the gyro angle when it has drifted too much
+  if (gyroXangle < -180 || gyroXangle > 180)
+     gyroXangle = kalAngleX;
+  if (gyroYangle < -180 || gyroYangle > 180)
+     gyroYangle = kalAngleY;
+   
+   kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
+   kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
+
+  // orientation.dmpgetQuaternion(&ox,&oy,&oz,&ow);	
+	orient.x = kalAngleY;
+	orient.y = kalAngleY;
+	orient.z = -1;
+	orient.w = -1 ;
+	return orient; 
+}
 
 #endif
+
+/*
+
+void imuCallback(const sensor_msgs::Imu::ConstPtr& msg) {
+    ROS_INFO( "Accel: %.3f,%.3f,%.3f [m/s^2] - Ang. vel: %.3f,%.3f,%.3f [deg/sec] - Orient. Quat: %.3f,%.3f,%.3f,%.3f",
+              msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z,
+              msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z,
+              msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
+}
+
+void magCallback(const sensor_msgs::MagneticField::ConstPtr& msg) {
+    ROS_INFO( "Mag. Field: %.3f,%.3f,%.3f [uT]",
+              msg->magnetic_field.x*1e-6, msg->magnetic_field.y*1e-6, msg->magnetic_field.z*1e-6);
+}
+
+*/
 
 //ADXL345 https://www.sparkfun.com/datasheets/Sensors/Accelerometer/ADXL345.pdf
 //HMC8553L https://cdn-shop.adafruit.com/datasheets/HMC5883L_3-Axis_Digital_Compass_IC.pdf

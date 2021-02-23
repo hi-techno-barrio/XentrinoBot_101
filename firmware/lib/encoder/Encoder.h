@@ -79,7 +79,7 @@ typedef struct {
 class Encoder
 {
 public:
-	Encoder(uint8_t pin1, uint8_t pin2) {
+	Encoder(uint8_t pin1, uint8_t pin2,float cpr ) {
 		#ifdef INPUT_PULLUP
 		pinMode(pin1, INPUT_PULLUP);
 		pinMode(pin2, INPUT_PULLUP);
@@ -89,6 +89,7 @@ public:
 		pinMode(pin2, INPUT);
 		digitalWrite(pin2, HIGH);
 		#endif
+		cpr_ = cpr ;
 		encoder.pin1_register = PIN_TO_BASEREG(pin1);
 		encoder.pin1_bitmask = PIN_TO_BITMASK(pin1);
 		encoder.pin2_register = PIN_TO_BASEREG(pin2);
@@ -108,25 +109,7 @@ public:
 #endif
 		//update_finishup();  // to force linker to include the code (does not work)
 	}
- inline float getRPM(float cpr)
-     {
-     // timestamp
-	  int32_t timestamp_us = micros();
-	  // sampling time calculation
-	  update(&encoder);
-	  pulse_counter = encoder.position;
-	  float dt = (timestamp_us - prev_timestamp_us) * 1e-6;
-	  int32_t dN = pulse_counter - prev_pulse_counter;
-	  pulse_per_second =  dN / dt ;	 
-	  // velocity calculation
-	  float velocity = pulse_per_second / ((float)cpr) * (_2PI);
-	  float RPM = velocity /60;  //in minutes
-	  // save variables for next pass
-	  prev_timestamp_us = timestamp_us;
-	  // save velocity calculation variables
-	  prev_pulse_counter = pulse_counter;
-     return (RPM);
- }
+ 
 
 #ifdef ENCODER_USE_INTERRUPTS
 	inline int32_t read() {
@@ -171,9 +154,47 @@ public:
 	inline void write(int32_t p) {
 		encoder.position = p;
 	}
+	
 #endif
-private:
+  inline float getRPM(){
+     // timestamp
+	  int32_t timestamp_us = micros();
+	  // sampling time calculation
+	 
+	  pulse_counter = read();
+	  float dt = (timestamp_us - prev_timestamp_us) * 1e-6;
+	  int32_t dN = pulse_counter - prev_pulse_counter;
+	  pulse_per_second =  dN / dt ;	 
+	  // velocity calculation
+	  float velocity = pulse_per_second / cpr_ * (_2PI);
+	  float RPM = velocity /60;  //in minutes
+	  // save variables for next pass
+	  prev_timestamp_us = timestamp_us;
+	  // save velocity calculation variables
+	  prev_pulse_counter = pulse_counter;
+     return (RPM);
+ }
+ /*
+int getRPM(){
+		long encoder_ticks = read();
+		//this function calculates the motor's RPM based on encoder ticks and delta time
+		unsigned long current_time = millis();
+		unsigned long dt = current_time - prev_update_time_;
 
+		//convert the time from milliseconds to minutes
+		double dtm = (double)dt / 60000;
+		double delta_ticks = encoder_ticks - prev_encoder_ticks_;
+
+		//calculate wheel's speed (RPM)
+
+		prev_update_time_ = current_time;
+		prev_encoder_ticks_ = encoder_ticks;
+		
+		return (delta_ticks / counts_per_rev_) / dtm;
+	}
+	*/
+private:
+    float cpr_;
     volatile int32_t pulse_counter;        // current pulse counter
     volatile int32_t pulse_timestamp;      // last impulse timestamp in us
    // float cpr;                 // impulse cpr

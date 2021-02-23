@@ -1,3 +1,6 @@
+#ifndef xentrino_config_h_
+#define xentrino_config_h_
+
 #include "Arduino.h"
 // #include "xentrino_base_config.h"
 // #include "xentrino.h"
@@ -15,14 +18,13 @@
 #define _2PI 6.28318530718
 #define _3PI_2 4.71238898038
 
-#define XENTRINOBOT_CONFIG_H
 
 //uncomment the base you're building
-#define LINO_BASE DIFFERENTIAL_DRIVE // 2WD and Tracked robot w/ 2 motors
-// #define LINO_BASE SKID_STEER      // 4WD robot
-// #define LINO_BASE ACKERMANN       // Car-like steering robot w/ 2 motors
-// #define LINO_BASE ACKERMANN1      // Car-like steering robot w/ 1 motor
-// #define LINO_BASE MECANUM         // Mecanum drive robot
+#define XENTRINOBOT_BASE DIFFERENTIAL_DRIVE // 2WD and Tracked robot w/ 2 motors
+// #define XENTRINOBOT_BASE SKID_STEER      // 4WD robot
+// #define XENTRINOBOT_BASE ACKERMANN       // Car-like steering robot w/ 2 motors
+// #define XENTRINOBOT_BASE ACKERMANN1      // Car-like steering robot w/ 1 motor
+// #define XENTRINOBOT_BASE MECANUM         // Mecanum drive robot
 
 //uncomment the motor driver you're using
 #define USE_L298_DRIVER
@@ -30,8 +32,8 @@
 // #define USE_ESC
 
 //uncomment the IMU you're using
-#define USE_GY85_IMU
-// #define USE_MPU6050_IMU
+//#define USE_GY85_IMU
+#define USE_MPU6050_IMU
 // #define USE_MPU9150_IMU
 // #define USE_MPU9250_IMU
 
@@ -87,7 +89,7 @@ ROBOT ORIENTATION
 
 //MOTOR PINS
 #ifdef USE_L298_DRIVER
-  #define MOTOR_DRIVER L298
+  #define CONTROLLER L298N
 
   #define MOTOR1_PWM 21
   #define MOTOR1_IN_A 20
@@ -109,52 +111,4 @@ ROBOT ORIENTATION
   #define PWM_MIN -PWM_MAX
 #endif 
 
-#ifdef USE_BTS7960_DRIVER
-  #define MOTOR_DRIVER BTS7960  
-
-  #define MOTOR1_PWM 1 //DON'T TOUCH THIS! This is just a placeholder
-  #define MOTOR1_IN_A 21
-  #define MOTOR1_IN_B 20
-
-  #define MOTOR2_PWM 8 //DON'T TOUCH THIS! This is just a placeholder
-  #define MOTOR2_IN_A 5
-  #define MOTOR2_IN_B 6
-
-  #define MOTOR3_PWM 0 //DON'T TOUCH THIS! This is just a placeholder
-  #define MOTOR3_IN_A 22
-  #define MOTOR3_IN_B 23
-
-  #define MOTOR4_PWM 2 //DON'T TOUCH THIS! This is just a placeholder
-  #define MOTOR4_IN_A 4
-  #define MOTOR4_IN_B 3
-
-  #define PWM_MAX pow(2, PWM_BITS) - 1
-  #define PWM_MIN -PWM_MAX
-#endif
-
-#ifdef USE_ESC
-  #define MOTOR_DRIVER ESC  
-
-  #define MOTOR1_PWM 1 //DON'T TOUCH THIS! This is just a placeholder
-  #define MOTOR1_IN_A 21
-  #define MOTOR1_IN_B 20
-
-  #define MOTOR2_PWM 8 //DON'T TOUCH THIS! This is just a placeholder
-  #define MOTOR2_IN_A 5
-  #define MOTOR2_IN_B 6
-
-  #define MOTOR3_PWM 0 //DON'T TOUCH THIS! This is just a placeholder
-  #define MOTOR3_IN_A 22
-  #define MOTOR3_IN_B 23
-
-  #define MOTOR4_PWM 2 //DON'T TOUCH THIS! This is just a placeholder
-  #define MOTOR4_IN_A 4
-  #define MOTOR4_IN_B 3
-
-  #define PWM_MAX 400
-  #define PWM_MIN -PWM_MAX
-#endif
-
-#define STEERING_PIN 7
-
-#endif
+#endif  // header end
