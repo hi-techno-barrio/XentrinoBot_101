@@ -10,11 +10,13 @@
 #else
  #include <WProgram.h>
 #endif
+
 #include <Wire.h>
-#include <ros.h>
-#include <ros/time.h>
-#include <geometry_msgs/Vector3.h>
+#include "ros.h"
+#include "ros/time.h"
+//#include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Twist.h>
+#include <sensor_msgs/Imu.h>
 #include "xentrino_config.h"
 #include "Imu.h"
 #include "Motor.h"
@@ -28,10 +30,10 @@
 #define COMMAND_RATE 20 //hz
 #define DEBUG_RATE 5
 
-Encoder encoder(MOTOR1_ENCODER_A, MOTOR1_ENCODER_B, COUNTS_PER_REV);
-Encoder encoder(MOTOR2_ENCODER_A, MOTOR2_ENCODER_B, COUNTS_PER_REV); 
+Encoder encoder1(MOTOR1_ENCODER_A, MOTOR1_ENCODER_B, COUNTS_PER_REV);
+Encoder encoder2(MOTOR2_ENCODER_A, MOTOR2_ENCODER_B, COUNTS_PER_REV); 
 
-Motor motor1(Motor::CONTROLLER MOTOR1_PWM, MOTOR1_IN_A, MOTOR1_IN_B);
+Motor motor1(Motor::CONTROLLER, MOTOR1_PWM, MOTOR1_IN_A, MOTOR1_IN_B);
 Motor motor2(Motor::CONTROLLER, MOTOR2_PWM, MOTOR2_IN_A, MOTOR2_IN_B); 
 
 PID   motor1_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
@@ -52,7 +54,7 @@ ros::NodeHandle nh;
 ros::Subscriber<geometry_msgs::Twist> cmd_sub("cmd_vel", commandCallback);
 sensor_msgs::Imu raw_imu_msg;
 ros::Publisher raw_imu_pub("raw_imu", &raw_imu_msg);
-geometry_msgs::Vector3 raw_vel_msg;
+geometry_msgs::Twist raw_vel_msg;
 ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 
 void setup()
@@ -82,11 +84,11 @@ void loop()
     {
         stopBase();
     } 
-//this block drives the robot based on defined rate	
+//this block drives the robot based on defined rate  
   if ((millis() - control_time) >= (1000 / COMMAND_RATE))
-	{
-	 moveBase();	
-	 //sanity check if the IMU is connected
+  {
+   moveBase();  
+   //sanity check if the IMU is connected
         if (!imu_is_initialized)
         {
             imu_is_initialized = initIMU();
@@ -101,16 +103,16 @@ void loop()
             publishIMU();
         }
         control_time = millis();
-	}
-	
-	
+  }
+  
+  
     //this block displays the encoder readings. change DEBUG to 0 if you don't want to display
     if(DEBUG)
     {
-        if ((millis() - prev_debug_time) >= (1000 / DEBUG_RATE))
+        if ((millis() - debug_time) >= (1000 / DEBUG_RATE))
         {
             printDebug();
-            prev_debug_time = millis();
+            debug_time = millis();
         }
     }
     //call all the callbacks waiting to be called
@@ -139,17 +141,17 @@ void moveBase()
   
     //the required rpm is capped at -/+ MAX_RPM to prevent the PID from having too much error
     //the PWM value sent to the motor driver is the calculated PID based on required RPM vs measured RPM
-    motor1_controller.spin(motor1_pid.compute(req_rpm.motor1, current_rpm1));
-    motor2_controller.spin(motor2_pid.compute(req_rpm.motor2, current_rpm2));
-	//need to auto-tune via firmaware
+    motor1.spin(motor1_pid.compute(req_rpm.motor1, current_rpm1));
+    motor2.spin(motor2_pid.compute(req_rpm.motor2, current_rpm2));
+  //need to auto-tune via firmaware
     Kinematics::velocities current_vel;
-	//for 2WD only!
+  //for 2WD only!
     current_vel = kinematics.getVelocities(current_rpm1, current_rpm2, current_rpm3, current_rpm4);
   
     //pass velocities to publisher object
-    raw_vel_msg.linear_x = current_vel.linear_x;
-    raw_vel_msg.linear_y = current_vel.linear_y;
-    raw_vel_msg.angular_z = current_vel.angular_z;
+    raw_vel_msg.linear.x = current_vel.linear_x;
+    raw_vel_msg.linear.y = current_vel.linear_y;
+    raw_vel_msg.angular.z = current_vel.angular_z;
 
     //publish raw_vel_msg
     raw_vel_pub.publish(&raw_vel_msg);
@@ -166,15 +168,14 @@ void publishIMU()
 {
     //pass accelerometer data to imu object
     raw_imu_msg.linear_acceleration = readAccelerometer();
-
     //pass gyroscope data to imu object
-    raw_imu_msg.angular_velocity = readGyroscope();
+    raw_imu_msg.angular_velocity = readGyroscope(); 
 
-    //pass accelerometer data to imu object
-    raw_imu_msg.magnetic_field = readMagnetometer();
-
+    //pass quaternion to imu object
+    raw_imu_msg.orientation = readOrientation();
+  
     //publish raw_imu_msg
-    raw_imu_pub.publish(&raw_imu_msg);
+    raw_imu_pub.publish(&raw_imu_msg); // orientation?
 }
 
 
@@ -187,9 +188,8 @@ void printDebug()
 {
     char buffer[50];
 
-    sprintf (buffer, "Encoder FrontLeft  : %ld", motor1_encoder.read());
+    sprintf (buffer, "Encoder FrontLeft  : %ld", encoder1.read());
     nh.loginfo(buffer);
-    sprintf (buffer, "Encoder FrontRight : %ld", motor2_encoder.read());
+    sprintf (buffer, "Encoder FrontRight : %ld", encoder2.read());
     nh.loginfo(buffer);
 }
-
