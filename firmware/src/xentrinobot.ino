@@ -39,17 +39,15 @@ Motor motor2(Motor::CONTROLLER, MOTOR2_PWM, MOTOR2_IN_A, MOTOR2_IN_B);
 PID   motor1_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 PID   motor2_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 
-Kinematics kinematics(Kinematics::XENTRINO_BASE, MAX_RPM, WHEEL_DIAMETER, FR_WHEELS_DISTANCE, LR_WHEELS_DISTANCE);
+Kinematics kinematics(Kinematics::XENTRINOBOT_BASE, MAX_RPM, WHEEL_DIAMETER, FR_WHEELS_DISTANCE, LR_WHEELS_DISTANCE);
 
 float req_linear_vel_x = 0;
 float req_linear_vel_y = 0;
 float req_angular_vel_z = 0;
-
 unsigned long callback_time = 0;
 
 //callback function prototypes
 void commandCallback(const geometry_msgs::Twist& cmd_msg);
-
 ros::NodeHandle nh;
 ros::Subscriber<geometry_msgs::Twist> cmd_sub("cmd_vel", commandCallback);
 sensor_msgs::Imu raw_imu_msg;
@@ -64,7 +62,6 @@ void setup()
     nh.subscribe(cmd_sub);
     nh.advertise(raw_vel_pub);
     nh.advertise(raw_imu_pub);
-
     while (!nh.connected())
     {
         nh.spinOnce();
@@ -78,7 +75,6 @@ void loop()
     static unsigned long control_time = 0;
     static unsigned long debug_time = 0;
     static bool imu_is_initialized;
- 
     //this block stops the motor when no command is received
    if ((millis() - callback_time) >=(1000 / COMMAND_RATE))
     {
@@ -89,22 +85,21 @@ void loop()
   {
    moveBase();  
    //sanity check if the IMU is connected
-        if (!imu_is_initialized)
-        {
+   if (!imu_is_initialized)
+     {
             imu_is_initialized = initIMU();
 
             if(imu_is_initialized)
                 nh.loginfo("IMU Initialized");
             else
                 nh.logfatal("IMU failed to initialize. Check your IMU connection.");
-        }
+      }
         else
         {
             publishIMU();
         }
         control_time = millis();
   }
-  
   
     //this block displays the encoder readings. change DEBUG to 0 if you don't want to display
     if(DEBUG)
@@ -146,7 +141,7 @@ void moveBase()
   //need to auto-tune via firmaware
     Kinematics::velocities current_vel;
   //for 2WD only!
-    current_vel = kinematics.getVelocities(current_rpm1, current_rpm2, current_rpm3, current_rpm4);
+    current_vel = kinematics.getVelocities(current_rpm1, current_rpm2);
   
     //pass velocities to publisher object
     raw_vel_msg.linear.x = current_vel.linear_x;
@@ -187,7 +182,6 @@ float mapFloat(float x, float in_min, float in_max, float out_min, float out_max
 void printDebug()
 {
     char buffer[50];
-
     sprintf (buffer, "Encoder FrontLeft  : %ld", encoder1.read());
     nh.loginfo(buffer);
     sprintf (buffer, "Encoder FrontRight : %ld", encoder2.read());
