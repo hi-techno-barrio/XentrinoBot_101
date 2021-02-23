@@ -1,9 +1,5 @@
 // Author: Christopher M Coballes
-// Credits:
-//   Linorobot
-//   ROS
-//   THe Construct
-//   
+// Hi-Techno Barrio
 //ROS headers
 #if (ARDUINO >= 100)
  #include <Arduino.h>
