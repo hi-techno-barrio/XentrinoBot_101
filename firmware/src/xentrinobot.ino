@@ -1,6 +1,9 @@
 // Author: Christopher M Coballes
-// Hi-Techno Barrio
-// Credits: Linorobot/Sunjik/ClearPath
+// Credits:
+//   Linorobot
+//   ROS
+//   THe Construct
+//   
 //ROS headers
 #if (ARDUINO >= 100)
  #include <Arduino.h>
@@ -9,9 +12,8 @@
 #endif
 
 #include <Wire.h>
-#include "ros.h"
+#include <ros.h>
 #include "ros/time.h"
-//#include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Imu.h>
 #include "xentrino_config.h"
@@ -54,8 +56,10 @@ ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 
 void setup()
 {
+    //nh.initNode();
+  //  nh.getHardware()->setBaud(115200);
     nh.initNode();
-    nh.getHardware()->setBaud(57600);
+  //  nh.getHardware()->setBaud(57600);
     nh.subscribe(cmd_sub);
     nh.advertise(raw_vel_pub);
     nh.advertise(raw_imu_pub);
