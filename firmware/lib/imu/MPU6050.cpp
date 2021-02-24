@@ -13,17 +13,14 @@
 /* ============================================
 I2Cdev device library code is placed under the MIT license
 Copyright (c) 2012 Jeff Rowberg
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,6 +32,29 @@ THE SOFTWARE.
 */
 
 #include "MPU6050.h"
+#include <string.h>
+
+#define I2C_NUM I2C_NUM_0
+
+void MPU6050::ReadRegister(uint8_t reg, uint8_t *data, uint8_t len){
+	uint8_t dev = 0x68;
+	i2c_cmd_handle_t cmd;
+	I2Cdev::SelectRegister(dev, reg);
+
+	cmd = i2c_cmd_link_create();
+	ESP_ERROR_CHECK(i2c_master_start(cmd));
+	ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (dev << 1) | I2C_MASTER_READ, 1));
+
+	if(len>1)
+		ESP_ERROR_CHECK(i2c_master_read(cmd, data, len, I2C_MASTER_ACK));
+
+	ESP_ERROR_CHECK(i2c_master_read_byte(cmd, data+len-1, I2C_MASTER_NACK));
+
+	ESP_ERROR_CHECK(i2c_master_stop(cmd));
+	ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_NUM, cmd, 1000));
+	i2c_cmd_link_delete(cmd);
+}
+
 
 /** Default constructor, uses default I2C address.
  * @see MPU6050_DEFAULT_ADDRESS
@@ -3034,8 +3054,8 @@ void MPU6050::readMemoryBlock(uint8_t *data, uint16_t dataSize, uint8_t bank, ui
     }
 }
 bool MPU6050::writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address, bool verify, bool useProgMem) {
-    setMemoryBank(bank);
-    setMemoryStartAddress(address);
+	setMemoryBank(bank);
+	setMemoryStartAddress(address);
     uint8_t chunkSize;
     uint8_t *verifyBuffer=0;
     uint8_t *progBuffer=0;
@@ -3065,30 +3085,28 @@ bool MPU6050::writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t b
 
         // verify data if needed
         if (verify && verifyBuffer) {
+        	printf("VERIFY\n");
             setMemoryBank(bank);
             setMemoryStartAddress(address);
             I2Cdev::readBytes(devAddr, MPU6050_RA_MEM_R_W, chunkSize, verifyBuffer);
             if (memcmp(progBuffer, verifyBuffer, chunkSize) != 0) {
-                /*Serial.print("Block write verification error, bank ");
-                Serial.print(bank, DEC);
-                Serial.print(", address ");
-                Serial.print(address, DEC);
-                Serial.print("!\nExpected:");
+            	printf("Block write verification error, bank \n");
+                /*Serial.print("Block write verification error, bank ");*/
+                printf("bank %d", bank);
+                printf(", address ");
+                printf("%d", address);
+                printf("!\nExpected:");
                 for (j = 0; j < chunkSize; j++) {
-                    Serial.print(" 0x");
-                    if (progBuffer[j] < 16) Serial.print("0");
-                    Serial.print(progBuffer[j], HEX);
+                    printf("%#04x", progBuffer[j]);
                 }
-                Serial.print("\nReceived:");
+                printf("\nReceived:");
                 for (uint8_t j = 0; j < chunkSize; j++) {
-                    Serial.print(" 0x");
-                    if (verifyBuffer[i + j] < 16) Serial.print("0");
-                    Serial.print(verifyBuffer[i + j], HEX);
+                    printf("%#04x", verifyBuffer[i + j]);
                 }
-                Serial.print("\n");*/
-                free(verifyBuffer);
-                if (useProgMem) free(progBuffer);
-                return false; // uh oh.
+                printf("\n");
+                //free(verifyBuffer);
+                //if (useProgMem) free(progBuffer);
+                //return false; // uh oh.
             }
         }
 
@@ -3110,7 +3128,7 @@ bool MPU6050::writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t b
     return true;
 }
 bool MPU6050::writeProgMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address, bool verify) {
-    return writeMemoryBlock(data, dataSize, bank, address, verify, true);
+	return writeMemoryBlock(data, dataSize, bank, address, verify, false);
 }
 bool MPU6050::writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, bool useProgMem) {
     uint8_t *progBuffer = 0;
@@ -3210,4 +3228,125 @@ uint8_t MPU6050::getDMPConfig2() {
 }
 void MPU6050::setDMPConfig2(uint8_t config) {
     I2Cdev::writeByte(devAddr, MPU6050_RA_DMP_CFG_2, config);
+}
+
+
+
+/**
+ * calibration
+ *
+ */
+
+
+/**
+ *
+ * @param val
+ * @param I_Min
+ * @param I_Max
+ * @param O_Min
+ * @param O_Max
+ * @return
+ */
+
+float map(float val, float I_Min, float I_Max, float O_Min, float O_Max){
+    return(val/(I_Max-I_Min)*(O_Max-O_Min) + O_Min);
+}
+
+
+
+
+
+/**
+  @brief      Fully calibrate Gyro from ZERO in about 6-7 Loops 600-700 readings
+*/
+void MPU6050::CalibrateGyro(uint8_t Loops ) {
+    double kP = 0.3;
+    double kI = 90;
+    float x;
+    x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
+    kP *= x;
+    kI *= x;
+
+    PID( 0x43,  kP, kI,  Loops);
+}
+
+/**
+  @brief      Fully calibrate Accel from ZERO in about 6-7 Loops 600-700 readings
+*/
+void MPU6050::CalibrateAccel(uint8_t Loops ) {
+
+    float kP = 0.3;
+    float kI = 20;
+    float x;
+    x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
+    kP *= x;
+    kI *= x;
+    PID( 0x3B, kP, kI,  Loops);
+}
+
+
+/**
+ *
+ * @param ReadAddress
+ * @param kP
+ * @param kI
+ * @param Loops
+ */
+void MPU6050::PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops){
+    uint8_t SaveAddress = (ReadAddress == 0x3B)?((getDeviceID() < 0x38 )? 0x06:0x77):0x13;
+
+    int16_t  Data;
+    float Reading;
+    int16_t BitZero[3];
+    uint8_t shift =(SaveAddress == 0x77)?3:2;
+    float Error, PTerm, ITerm[3];
+    int16_t eSample;
+    uint32_t eSum ;
+    for (int i = 0; i < 3; i++) {
+        I2Cdev::readWord(devAddr, SaveAddress + (i * shift), (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+        Reading = Data;
+        if(SaveAddress != 0x13){
+            BitZero[i] = Data & 1;										 // Capture Bit Zero to properly handle Accelerometer calibration
+            ITerm[i] = ((float)Reading) * 8;
+        } else {
+            ITerm[i] = Reading * 4;
+        }
+    }
+    for (int L = 0; L < Loops; L++) {
+        eSample = 0;
+        for (int c = 0; c < 100; c++) {// 100 PI Calculations
+            eSum = 0;
+            for (int i = 0; i < 3; i++) {
+                I2Cdev::readWord(devAddr, ReadAddress + (i * 2), (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+                Reading = Data;
+                if ((ReadAddress == 0x3B)&&(i == 2)) Reading -= 16384;	//remove Gravity
+                Error = -Reading;
+                eSum += abs(Reading);
+                PTerm = kP * Error;
+                ITerm[i] += (Error * 0.001) * kI;				// Integral term 1000 Calculations a second = 0.001
+                if(SaveAddress != 0x13){
+                    Data = round((PTerm + ITerm[i] ) / 8);		//Compute PID Output
+                    Data = ((Data)&0xFFFE) |BitZero[i];			// Insert Bit0 Saved at beginning
+                } else Data = round((PTerm + ITerm[i] ) / 4);	//Compute PID Output
+                I2Cdev::writeWord(devAddr, SaveAddress + (i * shift),Data);
+            }
+            if((c == 99) && eSum > 1000){						// Error is still to great to continue
+                c = 0;
+            }
+            if((eSum * ((ReadAddress == 0x3B)?.05: 1)) < 5) eSample++;	// Successfully found offsets prepare to  advance
+            if((eSum < 100) && (c > 10) && (eSample >= 10)) break;		// Advance to next Loop
+//            delay(1);
+        }
+        kP *= .75;
+        kI *= .75;
+        for (int i = 0; i < 3; i++){
+            if(SaveAddress != 0x13) {
+                Data = round((ITerm[i] ) / 8);		//Compute PID Output
+                Data = ((Data)&0xFFFE) |BitZero[i];	// Insert Bit0 Saved at beginning
+            } else Data = round((ITerm[i]) / 4);
+            I2Cdev::writeWord(devAddr, SaveAddress + (i * shift), Data);
+        }
+    }
+    resetFIFO();
+    resetDMP();
 }
