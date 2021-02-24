@@ -1,8 +1,6 @@
 /* 
  * Software License Agreement (BSD License)
  *
- * Copyright (c) 2011, Willow Garage, Inc.
- * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,27 +30,49 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ROS_ARDUINO_INCLUDES_H_
-#define ROS_ARDUINO_INCLUDES_H_
+#ifndef ESP32HARDWARE_H
+#define ESP32HARDWARE_H
 
-#if ARDUINO>=100
-  #include <Arduino.h>  // Arduino 1.0
-#else
-  #include <WProgram.h>  // Arduino 0022
-#endif
+#include <WiFi.h>
 
-#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MKL26Z64__) || defined(__MK64FX512__) || defined(__MK66FX1M0__) || defined(__IMXRT1062__)
-  #include <usb_serial.h>  // Teensy 3.0 and 3.1
-  #define SERIAL_CLASS usb_serial_class
-#elif defined(_SAM3XA_)
-  #include <UARTClass.h>  // Arduino Due
-  #define SERIAL_CLASS UARTClass
-#elif defined(USE_USBCON)
-  // Arduino Leonardo USB Serial Port
-  #define SERIAL_CLASS Serial_
-#else 
-  #include <HardwareSerial.h>  // Arduino AVR
-  #define SERIAL_CLASS HardwareSerial
-#endif
+class Esp32Hardware {
+  public:
+    Esp32Hardware()
+    {
+    }
+    
+    void setConnection(IPAddress &server, int port) {
+      this->server = server;
+      this->serverPort = port;
+    }
+    
+    IPAddress getLocalIP() {
+      return tcp.localIP();
+    }
 
-#endif //ROS_ARDUINO_INCLUDES_H_
+    void init() { 
+      this->tcp.connect(this->server, this->serverPort);
+    }
+
+    int read() {
+      if (this->tcp.connected()) {
+        return tcp.read();
+      } else {
+        this->tcp.connect(this->server, this->serverPort);
+      }
+      return -1;
+    };
+    
+    void write(const uint8_t* data, size_t length) {
+      tcp.write(data, length);
+    }
+
+    unsigned long time() {return millis();}
+
+  protected:
+    WiFiClient tcp;
+    IPAddress server; 
+    uint16_t serverPort = 11411;
+};
+
+#endif  // ESP8266HARDWARE_H
