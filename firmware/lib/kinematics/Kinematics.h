@@ -32,6 +32,13 @@
 
 #define RPM_TO_RPS 1/60
 
+// typedef struct 
+// {
+//    int motor_max_rpm 
+//    float wheel_diameter
+//    float wheels_x_distance 
+//    float wheels_y_distance
+// } robot_frame ;
 class Kinematics
 {
     public:

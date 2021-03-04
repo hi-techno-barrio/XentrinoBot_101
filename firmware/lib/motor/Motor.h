@@ -6,7 +6,7 @@ ver 1.0 - 1/1/2020
 #define Motor_h
 
 #include "Arduino.h"
-#include <analogWrite.h>
+//#include <analogWrite.h>
 
 class Motor
   { 

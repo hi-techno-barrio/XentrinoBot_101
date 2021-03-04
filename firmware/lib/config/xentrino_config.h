@@ -18,6 +18,9 @@
 #define _2PI 6.28318530718
 #define _3PI_2 4.71238898038
 
+#define MCU_BASE SAMD21
+//#define MCU_BASE ARDUINO
+//#define MCU_BASE ESP32
 
 //uncomment the base you're building
 #define XENTRINOBOT_BASE DIFFERENTIAL_DRIVE // 2WD and Tracked robot w/ 2 motors

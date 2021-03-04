@@ -3,7 +3,8 @@
 #ifndef _IMU_H_
 #define _IMU_H_
 #include <Kalman.h>             // Source: https://github.com/TKJElectronics/KalmanFilter
-#include "I2CESP32.h"
+//#include "I2CESP32.h"
+#include "I2CDev.h"
 
 #include <Wire.h>
 #include "geometry_msgs/Vector3.h"
