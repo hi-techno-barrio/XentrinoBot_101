@@ -57,16 +57,15 @@ int main(int argc, char** argv){
     imu_subscriber_	= nh_.subscribe("imu/data", 50, IMUCallback);
 	
     ros::Publisher odom_publisher_;
-	odom_publisher_ = nh_.advertise<nav_msgs::Odometry>("raw_odom", 50);
+    odom_publisher_ = nh_.advertise<nav_msgs::Odometry>("raw_odom", 50);
 	
     ros::Subscriber velocity_subscriber_;
-	velocity_subscriber_ = nh_.subscribe("raw_vel", 50, velCallback);
+    velocity_subscriber_ = nh_.subscribe("raw_vel", 50, velCallback);
 	
     tf2::Quaternion odom_quat;
     geometry_msgs::TransformStamped odom_trans;
     nav_msgs::Odometry odom;
 
-   
     double x_pos = 0.0;
     double y_pos = 0.0;
     double turn_angle_ = 0.0;
@@ -88,8 +87,23 @@ int main(int argc, char** argv){
 
         //calculate angular displacement  θ = ω * t
         double turn_angle_theta = angular_velocity * vel_dt_; //radians
-        double delta_x = (linear_velocity_x * cos(theta) - linear_velocity_y * sin(theta)) * g_vel_dt; //m
-        double delta_y = (linear_velocity_x * sin(theta) + linear_velocity_y * cos(theta)) * g_vel_dt; //m
+  ros::spinOnce();
+        ros::Time current_time = ros::Time::now();
+
+        //linear velocity is the linear velocity published from the Teensy board in x axis
+        double linear_velocity_x = vel_x_;
+
+        //linear velocity is the linear velocity published from the Teensy board in y axis
+        double linear_velocity_y = vel_y_;
+
+        //angular velocity is the rotation in Z from imu_filter_madgwick's output
+        //double angular_velocity = g_imu_z;
+		double angular_velocity = vel_z_;
+
+        //calculate angular displacement  θ = ω * t
+        double turn_angle_theta = angular_velocity * vel_dt_; //radians
+        double delta_x = (linear_velocity_x * cos(theta) - linear_velocity_y * sin(theta)) *  vel_dt_; //m
+        double delta_y = (linear_velocity_x * sin(theta) + linear_velocity_y * cos(theta)) *  vel_dt_; //m
 
         //calculate current position of the robot
         x_pos += delta_x;
