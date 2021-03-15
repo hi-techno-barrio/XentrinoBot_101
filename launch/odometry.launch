@@ -2,8 +2,6 @@
    <!--  minimal launch --> 
    <include file="$(find xentrinobot_101)/launch/include/configure.launch"/> 
    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find xentrinobot_101)/rviz/odometry.rviz"/> 
-
-
   </launch>
     
     
