@@ -1,6 +1,5 @@
 <launch>
 
-
     <!-- <include file="$(find xentrinobot)/launch/include/ros_serial.launch" />  -->   
     <!-- Start ROS communication between the robot's computer and Linorobot base -->
     <node pkg="rosserial_python" name="rosserial_xentrino" type="serial_node.py" output="screen">
