@@ -1,8 +1,8 @@
 // Author: Christopher M Coballes
 // Credits:
 //   Linorobot
+//   Sunjik ROS robot
 //   ROS
-//   THe Construct
 //   
 //ROS headers
 #if (ARDUINO >= 100)
@@ -15,6 +15,7 @@
 #include <ros.h>
 #include "ros/time.h"
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Accel.h>
 #include <sensor_msgs/Imu.h>
 #include "xentrino_config.h"
 #include "Imu.h"
@@ -51,15 +52,14 @@ ros::NodeHandle nh;
 ros::Subscriber<geometry_msgs::Twist> cmd_sub("cmd_vel", commandCallback);
 sensor_msgs::Imu raw_imu_msg;
 ros::Publisher raw_imu_pub("raw_imu", &raw_imu_msg);
-geometry_msgs::Twist raw_vel_msg;
+geometry_msgs::Accel raw_vel_msg;
 ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 
 void setup()
 {
-    //nh.initNode();
-  //  nh.getHardware()->setBaud(115200);
+ 
     nh.initNode();
-  //  nh.getHardware()->setBaud(57600);
+    nh.getHardware()->setBaud(57600);
     nh.subscribe(cmd_sub);
     nh.advertise(raw_vel_pub);
     nh.advertise(raw_imu_pub);
