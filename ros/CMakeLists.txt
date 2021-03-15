@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(xentrinobot)
+project(xentrinobot_101)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package(
   #INCLUDE_DIRS include
-  LIBRARIES xentrinobot
+  LIBRARIES xentrinobot_101
   CATKIN_DEPENDS roscpp rospy tf nav_msgs geometry_msgs sensor_msgs std_msgs 
   DEPENDS system_lib
 )
